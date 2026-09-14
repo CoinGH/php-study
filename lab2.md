@@ -17,7 +17,9 @@ $taskTimeEstimate = 2;
     <title><?= $appName ?></title>
 </head>
 <body>
-    <header><h1><?= $appName ?></h1></header>
+    <header>
+        <h1><?= $appName ?></h1>
+    </header>
     <main>
         <ul>
             <li><?= $taskTitle ?></li>
