@@ -17,8 +17,7 @@ $isCompleted = true;
     <style>
         .task-done {
             color: green;
-            outline: 1px;
-            outline-color: black;
+            -webkit-text-stroke: 0.1px black;
         }
         .task-pending {
             color: gray;
@@ -31,10 +30,16 @@ $isCompleted = true;
     </header>
     <main>
         <ul>
-            <li><?= $taskTitle ?></li>
-            <li><?= $taskTimeEstimate ?></li>
+            <li class="<?= $isCompleted ? 'task-done' : 'task-pending' ?>">
+                <?= $taskTitle ?> 
+                <?php if ($isCompleted): ?>
+                    ✔️ Виконано
+                <?php else: ?>
+                    🕒 В процесі
+                <?php endif; ?>
+            </li>
+            <li>Орієнтовний час: <?= $taskTimeEstimate ?> год.</li>
         </ul>
-        <p class="<?= $isCompleted ? 'task-done' : 'task-pending' ?>"><?php if ($isCompleted): ?>✔️ Виконано<?php else: ?>🕒 В процесі<?php endif; ?></p>
     </main>
 </body>
 </html>
