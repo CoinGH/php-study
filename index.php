@@ -1,10 +1,40 @@
 <?php
 
 $appName = "Task Manager";
-$taskTimeEstimate = 2;
-$isCompleted = true;
-$taskTitle = "Actually I hate niggle!";
 date_default_timezone_set('Europe/Kyiv');
+
+$tasks = [
+    [
+        'id' => 0,
+        'title' => "Play Games",
+        'priority' => 'Ultra High',
+        'is_completed' => false
+    ],
+    [
+        'id' => 1,
+        'title' => "Do homework",
+        'priority' => 'Low',
+        'is_completed' => false
+    ],
+    [
+        'id' => 2,
+        'title' => "Procrastinate",
+        'priority' => 'Maximum',
+        'is_completed' => true
+    ],
+    [
+        'id' => 3,
+        'title' => "Calculate 1000 - 800",
+        'priority' => 'Medium',
+        'is_completed' => true
+    ],
+        [
+        'id' => 4,
+        'title' => "Vibecode",
+        'priority' => 'High',
+        'is_completed' => false
+    ],
+];
 
 function formatTitle($text, $maxLength = 20) {
     if (strlen($text) > $maxLength) {
@@ -42,6 +72,9 @@ function getCurrentGreeting() {
         .task-pending {
             color: gray;
         }
+        .brdr {
+            border: 1px solid black;
+        }
     </style>
 </head>
 <body>
@@ -52,15 +85,17 @@ function getCurrentGreeting() {
     </header>
     <main>
         <ul>
-            <li class="<?= $isCompleted ? 'task-done' : 'task-pending' ?>">
-                <?= formatTitle($taskTitle) ?>
-                <?php if ($isCompleted): ?>
-                    ✔️ Виконано
-                <?php else: ?>
-                    🕒 В процесі
-                <?php endif; ?>
+            <?php foreach ($tasks as $task): ?>
+            <li class="<?= $task['is_completed'] ? 'task-done' : 'task-pending' ?>"> 
+                <?= formatTitle($task['title']) ?> 
+                <?php if ($task['is_completed']): ?>
+                        ✔️ Виконано
+                    <?php else: ?>
+                        🕒 В процесі
+                    <?php endif; ?>
             </li>
-            <li>Орієнтовний час: <?= $taskTimeEstimate ?> год.</li>
+            <li>Пріорітет: <?= $task['priority'] ?>.</li>
+            <?php endforeach; ?>
         </ul>
     </main>
 </body>

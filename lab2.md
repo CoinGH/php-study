@@ -30,6 +30,7 @@ $taskTimeEstimate = 2;
 </html>
 
 ```
+
 ![Фото для звіту](screenshot2.png)
 
 ## Відповіді на питання:

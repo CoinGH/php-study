@@ -49,6 +49,7 @@ $isCompleted = true;
 </html>
 
 ```
+
 ![Фото для звіту](screenshot3.png)
 
 ## Відповіді на питання:

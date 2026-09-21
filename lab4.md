@@ -26,6 +26,7 @@ function getCurrentGreeting() {
 }
 
 ```
+
 ![Фото для звіту](screenshot4.png)
 
 ## Відповіді на питання:
