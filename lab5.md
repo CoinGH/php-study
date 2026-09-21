@@ -44,20 +44,20 @@ $tasks = [
 ```php
 
 <main>
-        <ul>
-            <?php foreach ($tasks as $task): ?>
-            <li class="<?= $task['is_completed'] ? 'task-done' : 'task-pending' ?>"> 
-                <?= formatTitle($task['title']) ?> 
-                <?php if ($task['is_completed']): ?>
-                        ✔️ Виконано
-                    <?php else: ?>
-                        🕒 В процесі
-                    <?php endif; ?>
-            </li>
-            <li>Пріорітет: <?= $task['priority'] ?>.</li>
-            <?php endforeach; ?>
-        </ul>
-    </main>
+    <ul>
+        <?php foreach ($tasks as $task): ?>
+        <li class="<?= $task['is_completed'] ? 'task-done' : 'task-pending' ?>"> 
+            <?= formatTitle($task['title']) ?> 
+            <?php if ($task['is_completed']): ?>
+                    ✔️ Виконано
+                <?php else: ?>
+                    🕒 В процесі
+                <?php endif; ?>
+        </li>
+        <li>Пріорітет: <?= $task['priority'] ?>.</li>
+        <?php endforeach; ?>
+    </ul>
+</main>
 
 ```
 
