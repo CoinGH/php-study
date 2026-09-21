@@ -72,9 +72,6 @@ function getCurrentGreeting() {
         .task-pending {
             color: gray;
         }
-        .brdr {
-            border: 1px solid black;
-        }
     </style>
 </head>
 <body>
