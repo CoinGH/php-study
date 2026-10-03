@@ -38,8 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </ul>
     </div>
     <form action="create.php" method="POST">
-        <input type="text" name="title">
-        <textarea name="description"></textarea>
+        <input type="text" name="title" value="<?php if (!empty($errors)):?><?= $title ?? "" ?><?php endif; ?>">
+        <textarea name="description"><?php if (!empty($errors)):?><?= $description ?? "" ?><?php endif; ?></textarea>
         <select name="priority">
             <option value="low">Низький</option>
             <option value="medium">Середній</option>

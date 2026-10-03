@@ -21,6 +21,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 ```
 
+```php
+
+<div class="alert">
+        <ul>
+            <?php if (!empty($errors)): foreach($errors as $error):?>
+            <li class="error_li">
+                <?= $error ?>
+            </li>
+            <?php endforeach; endif; ?>
+        </ul>
+    </div>
+
+```
+
 ### Фото 1
 
 ![Фото для звіту](screenshot7_0.png)
@@ -29,7 +43,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 ```php
 
-
+<input type="text" name="title" value="<?php if (!empty($errors)):?><?= $title ?? "" ?><?php endif; ?>">
+<textarea name="description"><?php if (!empty($errors)):?><?= $description ?? "" ?><?php endif; ?></textarea>
 
 ```
 
