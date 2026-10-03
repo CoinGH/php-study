@@ -7,7 +7,7 @@ $tasks = [
     [
         'id' => 0,
         'title' => "Play Games",
-        'priority' => 'Ultra High',
+        'priority' => 'Ultra',
         'is_completed' => false
     ],
     [
@@ -37,8 +37,8 @@ $tasks = [
 ];
 
 function formatTitle($text, $maxLength = 20) {
-    if (strlen($text) > $maxLength) {
-        return substr($text, 0, $maxLength) . '...';
+    if (mb_strlen($text) > $maxLength) {
+        return mb_substr($text, 0, $maxLength) . '...';
     }
     return $text;
 }
@@ -78,7 +78,7 @@ function getCurrentGreeting() {
     <header>
         <h1><?= $appName ?></h1>
         <h2><?= getCurrentGreeting() ?>!</h2>
-        <h2></h2>
+        <a href="create.php">Додати нове завдання</a>
     </header>
     <main>
         <ul>
