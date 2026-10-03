@@ -45,6 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <input type="text" name="title" value="<?php if (!empty($errors)):?><?= $title ?? "" ?><?php endif; ?>">
 <textarea name="description"><?php if (!empty($errors)):?><?= $description ?? "" ?><?php endif; ?></textarea>
+<select name="priority">
+    <option value="low" <?= ($priority ?? 'low') === 'low' ? 'selected' : '' ?> >Низький</option>
+    <option value="medium" <?= ($priority ?? 'medium') === 'medium' ? 'selected' : '' ?> >Середній</option>
+    <option value="high" <?= ($priority ?? 'high') === 'high' ? 'selected' : '' ?> >Високий</option>
+    <option value="ultra" <?= ($priority ?? 'ultra') === 'ultra' ? 'selected' : '' ?> >Ультра</option>
+    <option value="maximum" <?= ($priority ?? 'maximum') === 'maximum' ? 'selected' : '' ?> >Максимальний</option>
+</select>
 
 ```
 
