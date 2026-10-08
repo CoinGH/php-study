@@ -7,12 +7,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = htmlspecialchars(trim($_POST['title']));
     $description = htmlspecialchars(trim($_POST['description']));
     $priority = $_POST['priority'];
-    $filename = $_FILES['avatar']['name'];
     $need_to_upload = true;
 
     if (empty($title)): $errors[] = "Поле Назва є обов'язковим для заповнення!"; $need_to_upload = false; endif;
     if (empty($description)): $errors[] = "Поле Опис є обов'язковим для заповнення!"; $need_to_upload = false; endif;
     if (isset($_FILES['avatar']) && $_FILES['avatar']['error'] === UPLOAD_ERR_OK) {
+        $filename = $_FILES['avatar']['name'];
         if ($_FILES['avatar']['size'] <= 3 * 1024 * 1024) {
             if (in_array(pathinfo($filename, PATHINFO_EXTENSION), $extensions, true)) {
                 if ($need_to_upload) {
