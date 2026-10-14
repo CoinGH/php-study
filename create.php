@@ -1,4 +1,10 @@
 <?php
+session_start();
+if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
+    header('Location: login.php');
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $errors = [];
     $extensions = ['jpg', 'jpeg', 'png'];

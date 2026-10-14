@@ -1,4 +1,5 @@
 <?php
+session_start();
 
 $appName = "Task Manager";
 date_default_timezone_set('Europe/Kyiv');
@@ -76,6 +77,13 @@ function getCurrentGreeting() {
 </head>
 <body>
     <header>
+        <h1>
+            <?php if (isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] === true): ?>
+                Привіт, <?= htmlspecialchars($_SESSION['user_name']) ?>! <a href="logout.php">[Вийти]</a>
+            <?php else: ?>
+                Ви увійшли як Гість. <a href="login.php">[Увійти]</a>
+            <?php endif; ?>
+        </h1>
         <h1><?= $appName ?></h1>
         <h2><?= getCurrentGreeting() ?>!</h2>
         <a href="create.php">Додати нове завдання</a>
