@@ -1,41 +1,44 @@
 <?php
+declare(strict_types=1);
 session_start();
 
-$appName = "Task Manager";
-date_default_timezone_set('Europe/Kyiv');
+require_once __DIR__ . '/Task.php';
+require_once __DIR__ . '/TaskRepository.php';
 
-$tasks = [
-    [
-        'id' => 0,
-        'title' => "Play Games",
-        'priority' => 'Ultra',
-        'is_completed' => false
-    ],
-    [
-        'id' => 1,
-        'title' => "Do homework",
-        'priority' => 'Low',
-        'is_completed' => false
-    ],
-    [
-        'id' => 2,
-        'title' => "Procrastinate",
-        'priority' => 'Maximum',
-        'is_completed' => true
-    ],
-    [
-        'id' => 3,
-        'title' => "Calculate 1000 - 800",
-        'priority' => 'Medium',
-        'is_completed' => true
-    ],
-        [
-        'id' => 4,
-        'title' => "Vibecode",
-        'priority' => 'High',
-        'is_completed' => false
-    ],
-];
+if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
+    header('Location: login.php');
+    exit;
+}
+
+$repo = new TaskRepository(__DIR__ . '/tasks.json');
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'add') {
+        $title    = trim($_POST['title'] ?? '');
+        $deadline = trim($_POST['deadline'] ?? '') ?: null;
+        if (!empty($title)) {
+            $repo->add($title, $deadline);
+        }
+    }
+
+    if ($action === 'complete') {
+        $repo->complete((int) ($_POST['id'] ?? 0));
+    }
+
+    if ($action === 'delete') {
+        $repo->delete((int) ($_POST['id'] ?? 0));
+    }
+
+    header('Location: index.php');
+    exit;
+}
+
+$tasks = $repo->findAll();
+
+$appName = "Task Manager";
+date_default_timezone_set('Europe/Kiev');
 
 function formatTitle($text, $maxLength = 20) {
     if (mb_strlen($text) > $maxLength) {
@@ -86,22 +89,40 @@ function getCurrentGreeting() {
         </h1>
         <h1><?= $appName ?></h1>
         <h2><?= getCurrentGreeting() ?>!</h2>
-        <a href="create.php">Додати нове завдання</a>
+        <form method="POST">
+            <input type="hidden" name="action" value="add">
+            <input type="text" name="title" placeholder="Назва завдання" required>
+            <input type="date" name="deadline">
+            <button type="submit">Додати</button>
+        </form>
     </header>
     <main>
-        <ul>
-            <?php foreach ($tasks as $task): ?>
-            <li class="<?= $task['is_completed'] ? 'task-done' : 'task-pending' ?>"> 
-                <?= formatTitle($task['title']) ?> 
-                <?php if ($task['is_completed']): ?>
-                        ✔️ Виконано
-                    <?php else: ?>
-                        🕒 В процесі
-                    <?php endif; ?>
+    <div class="stats">
+        Всього: <?= count($tasks) ?> |
+        Виконано: <?= $repo->countCompleted() ?> |
+        Прострочено: <?= $repo->countOverdue() ?>
+    </div>
+    <ul>
+        <?php foreach ($tasks as $task): ?>
+            <li class="<?= $task->isCompleted() ? 'task-done' : 'task-pending' ?>">
+                <?= htmlspecialchars(formatTitle($task->getTitle())) ?>
+                <?= $task->getDeadline() ? '(' . htmlspecialchars($task->getDeadline()) . ')' : '' ?>
+                — <?= $task->getStatusLabel() ?>
+
+                <form method="POST" style="display:inline;">
+                    <input type="hidden" name="action" value="complete">
+                    <input type="hidden" name="id" value="<?= $task->getId() ?>">
+                    <button type="submit">✓</button>
+                </form>
+
+                <form method="POST" style="display:inline;">
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="id" value="<?= $task->getId() ?>">
+                    <button type="submit">✕</button>
+                </form>
             </li>
-            <li>Пріорітет: <?= $task['priority'] ?>.</li>
-            <?php endforeach; ?>
-        </ul>
+        <?php endforeach; ?>
+    </ul>
     </main>
 </body>
 </html>
