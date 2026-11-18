@@ -1,1 +1,20 @@
-[]
+[
+    {
+        "id": 1,
+        "title": "душить змію",
+        "isCompleted": true,
+        "deadline": "2027-06-13"
+    },
+    {
+        "id": 2,
+        "title": "перевзутися",
+        "isCompleted": false,
+        "deadline": "2026-12-22"
+    },
+    {
+        "id": 3,
+        "title": "помінять труси",
+        "isCompleted": false,
+        "deadline": "2021-09-17"
+    }
+]
