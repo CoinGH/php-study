@@ -1,44 +1,74 @@
 <?php
 declare(strict_types=1);
 session_start();
+date_default_timezone_set('Europe/Kiev');
 
 require_once __DIR__ . '/Task.php';
+require_once __DIR__ . '/TaskStorageInterface.php';
 require_once __DIR__ . '/TaskRepository.php';
+require_once __DIR__ . '/Exceptions.php';
 
 if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
     header('Location: login.php');
     exit;
 }
 
+// Залежність оголошена через інтерфейс
+/** @var TaskStorageInterface $repo */
 $repo = new TaskRepository(__DIR__ . '/tasks.json');
+
+$formErrors = [];
+$feedbackMessage = $_SESSION['feedback'] ?? null;
+unset($_SESSION['feedback']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    if ($action === 'add') {
-        $title    = trim($_POST['title'] ?? '');
-        $deadline = trim($_POST['deadline'] ?? '') ?: null;
-        if (!empty($title)) {
+    try {
+        if ($action === 'add') {
+            $title    = $_POST['title'] ?? '';
+            $deadline = trim($_POST['deadline'] ?? '') ?: null;
+
             $repo->add($title, $deadline);
+            $_SESSION['feedback'] = 'Завдання успішно додано!';
+            header('Location: index.php');
+            exit;
         }
-    }
 
-    if ($action === 'complete') {
-        $repo->complete((int) ($_POST['id'] ?? 0));
-    }
+        if ($action === 'complete') {
+            $repo->complete((int) ($_POST['id'] ?? 0));
+            $_SESSION['feedback'] = 'Статус завдання оновлено!';
+            header('Location: index.php');
+            exit;
+        }
 
-    if ($action === 'delete') {
-        $repo->delete((int) ($_POST['id'] ?? 0));
+        if ($action === 'delete') {
+            $repo->delete((int) ($_POST['id'] ?? 0));
+            $_SESSION['feedback'] = 'Завдання видалено!';
+            header('Location: index.php');
+            exit;
+        }
+    } catch (ValidationException $e) {
+        // Перехоплюємо помилки валідації форми
+        $formErrors = $e->getErrors();
+    } catch (TaskNotFoundException $e) {
+        // Перехоплюємо спробу маніпуляції неіснуючим завданням
+        $formErrors = [$e->getMessage()];
+    } catch (TaskManagerException $e) {
+        // Загальний доменний виняток
+        $formErrors = ['Помилка програми: ' . $e->getMessage()];
+    } catch (Throwable $e) {
+        // Непередбачена системна помилка
+        $formErrors = ['Критичний збій обробки запиту. Зверніться до техпідтримки.'];
+    } finally {
+        // Код у finally виконується незалежно від наявності чи відсутності винятку
+        // Наприклад, запис системного аудиту або закриття додаткових ресурсів
     }
-
-    header('Location: index.php');
-    exit;
 }
 
 $tasks = $repo->findAll();
 
 $appName = "Task Manager";
-date_default_timezone_set('Europe/Kiev');
 
 function formatTitle($text, $maxLength = 20) {
     if (mb_strlen($text) > $maxLength) {
@@ -76,6 +106,22 @@ function getCurrentGreeting() {
         .task-pending {
             color: gray;
         }
+        .task-meta {
+            font-size: 0.85em;
+            color: #868e96;
+        }
+        .alert-error {
+            background: #ffe3e3;
+            border: 1px solid #ffa8a8;
+            color: #c92a2a;
+            padding: 10px;
+        }
+        .alert-success {
+            background: #d3f9d8;
+            border: 1px solid #8ce99a;
+            color: #2b8a3e;
+            padding: 10px;
+        }
     </style>
 </head>
 <body>
@@ -89,10 +135,26 @@ function getCurrentGreeting() {
         </h1>
         <h1><?= $appName ?></h1>
         <h2><?= getCurrentGreeting() ?>!</h2>
+
+        <?php if ($feedbackMessage): ?>
+            <div class="alert-success"><?= htmlspecialchars($feedbackMessage) ?></div>
+        <?php endif; ?>
+
+        <?php if (!empty($formErrors)): ?>
+            <div class="alert-error">
+                <strong>Увага! Виявлено помилки під час виконання операції:</strong>
+                <ul>
+                    <?php foreach ($formErrors as $error): ?>
+                        <li><?= htmlspecialchars($error) ?></li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
+        <?php endif; ?>
+
         <form method="POST">
             <input type="hidden" name="action" value="add">
-            <input type="text" name="title" placeholder="Назва завдання" required>
-            <input type="date" name="deadline">
+            <input type="text" name="title" placeholder="Назва завдання (мінімум 3 символи)" value="<?= htmlspecialchars($_POST['title'] ?? '') ?>">
+            <input type="date" name="deadline" value="<?= htmlspecialchars($_POST['deadline'] ?? '') ?>">
             <button type="submit">Додати</button>
         </form>
     </header>
@@ -109,17 +171,26 @@ function getCurrentGreeting() {
                 <?= $task->getDeadline() ? '(' . htmlspecialchars($task->getDeadline()) . ')' : '' ?>
                 — <?= $task->getStatusLabel() ?>
 
-                <form method="POST" style="display:inline;">
-                    <input type="hidden" name="action" value="complete">
-                    <input type="hidden" name="id" value="<?= $task->getId() ?>">
-                    <button type="submit">✓</button>
-                </form>
+                <?php if (!$task->isCompleted()): ?>
+                    <form method="POST" style="display:inline;">
+                        <input type="hidden" name="action" value="complete">
+                        <input type="hidden" name="id" value="<?= $task->getId() ?>">
+                        <button type="submit">✓</button>
+                    </form>
+                <?php endif; ?>
 
                 <form method="POST" style="display:inline;">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="id" value="<?= $task->getId() ?>">
                     <button type="submit">✕</button>
                 </form>
+
+                <div class="task-meta">
+                    Створено: <?= htmlspecialchars($task->getCreatedAt()) ?>
+                    <?php if ($task->getUpdatedAt()): ?>
+                        | Оновлено: <?= htmlspecialchars($task->getUpdatedAt()) ?>
+                    <?php endif; ?>
+                </div>
             </li>
         <?php endforeach; ?>
     </ul>

@@ -3,18 +3,32 @@
         "id": 1,
         "title": "душить змію",
         "isCompleted": true,
-        "deadline": "2027-06-13"
+        "deadline": "2027-06-13",
+        "createdAt": "2026-11-19 01:13:24",
+        "updatedAt": null
     },
     {
         "id": 2,
         "title": "перевзутися",
-        "isCompleted": false,
-        "deadline": "2026-12-22"
+        "isCompleted": true,
+        "deadline": "2026-12-22",
+        "createdAt": "2026-11-19 01:13:24",
+        "updatedAt": "2026-11-19 01:13:43"
     },
     {
         "id": 3,
         "title": "помінять труси",
         "isCompleted": false,
-        "deadline": "2021-09-17"
+        "deadline": "2021-09-17",
+        "createdAt": "2026-11-19 01:13:24",
+        "updatedAt": null
+    },
+    {
+        "id": 4,
+        "title": "доїдать шось із соллю",
+        "isCompleted": false,
+        "deadline": "2026-12-08",
+        "createdAt": "2026-11-19 01:13:24",
+        "updatedAt": null
     }
 ]
