@@ -207,10 +207,10 @@ class TaskRepository
 ```json
 [
     {
-        "id": 1,
-        "title": "Підготувати звіт",
+        "id": 3,
+        "title": "помінять труси",
         "isCompleted": false,
-        "deadline": "2026-11-20"
+        "deadline": "2021-09-17"
     }
 ]
 ```
