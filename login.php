@@ -3,6 +3,7 @@ session_start();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($_POST['username'] === 'admin' && $_POST['password'] === '12345') {
         $_SESSION['is_logged_in'] = true;
+        $_SESSION['user_id'] = 1;
         $_SESSION['user_name'] = 'Адміністратор';
         header('Location: index.php');
         exit;

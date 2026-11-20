@@ -9,12 +9,16 @@ class Task
 
     public function __construct(
         public readonly int    $id,
+        public readonly int    $userId,
         private string         $title,
         private bool           $isCompleted = false,
         private ?string        $deadline    = null,
         ?string                $createdAt   = null,
         ?string                $updatedAt   = null,
     ) {
+        if (trim($title) === '') {
+            throw new InvalidArgumentException('Назва завдання не може бути порожньою.');
+        }
         $this->initTimestamps($createdAt, $updatedAt);
     }
 
@@ -34,7 +38,7 @@ class Task
     public function complete(): void
     {
         $this->isCompleted = true;
-        $this->touch(); // Оновлюємо мітку часу модифікації
+        $this->touch();
     }
 
     public function getStatusLabel(): string
@@ -44,29 +48,29 @@ class Task
         return 'В процесі';
     }
 
-    // Перетворює об'єкт на звичайний масив для JSON-кодування
     public function toArray(): array
     {
         return [
             'id'          => $this->id,
+            'user_id'     => $this->userId,
             'title'       => $this->title,
-            'isCompleted' => $this->isCompleted,
+            'is_completed' => $this->isCompleted,
             'deadline'    => $this->deadline,
-            'createdAt'   => $this->getCreatedAt(),
-            'updatedAt'   => $this->getUpdatedAt(),
+            'created_at'   => $this->getCreatedAt(),
+            'updated_at'   => $this->getUpdatedAt(),
         ];
     }
 
-    // Статичний метод: з масиву (прочитаного з JSON) створює об'єкт Task
     public static function fromArray(array $data): self
     {
         return new self(
             id:          (int) $data['id'],
+            userId:      (int) $data['user_id'],
             title:       (string) $data['title'],
-            isCompleted: (bool) ($data['isCompleted'] ?? false),
+            isCompleted: (bool) ($data['is_completed'] ?? false),
             deadline:    $data['deadline']  ?? null,
-            createdAt:   $data['createdAt'] ?? null,
-            updatedAt:   $data['updatedAt'] ?? null,
+            createdAt:   $data['created_at'] ?? null,
+            updatedAt:   $data['updated_at'] ?? null,
         );
     }
 }

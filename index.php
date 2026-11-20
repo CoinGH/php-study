@@ -3,19 +3,24 @@ declare(strict_types=1);
 session_start();
 date_default_timezone_set('Europe/Kiev');
 
+require_once __DIR__ . '/Database.php';
 require_once __DIR__ . '/Task.php';
 require_once __DIR__ . '/TaskStorageInterface.php';
 require_once __DIR__ . '/TaskRepository.php';
 require_once __DIR__ . '/Exceptions.php';
 
-if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true) {
+if (!isset($_SESSION['is_logged_in']) || $_SESSION['is_logged_in'] !== true || !isset($_SESSION['user_id'])) {
     header('Location: login.php');
     exit;
 }
 
-// Залежність оголошена через інтерфейс
-/** @var TaskStorageInterface $repo */
-$repo = new TaskRepository(__DIR__ . '/tasks.json');
+$currentUserId = (int) $_SESSION['user_id'];
+try {
+    $repo = new TaskRepository(Database::getConnection());
+} catch (RuntimeException $e) {
+    http_response_code(503);
+    exit('Помилка підключення до бази даних.');
+}
 
 $formErrors = [];
 $feedbackMessage = $_SESSION['feedback'] ?? null;
@@ -29,53 +34,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $title    = $_POST['title'] ?? '';
             $deadline = trim($_POST['deadline'] ?? '') ?: null;
 
-            $repo->add($title, $deadline);
-            $_SESSION['feedback'] = 'Завдання успішно додано!';
+            $repo->add($currentUserId, $title, $deadline);
+            $_SESSION['feedback'] = 'Завдання успішно збережено в базі даних!';
             header('Location: index.php');
             exit;
         }
 
         if ($action === 'complete') {
-            $repo->complete((int) ($_POST['id'] ?? 0));
+            $repo->complete((int) ($_POST['id'] ?? 0), $currentUserId);
             $_SESSION['feedback'] = 'Статус завдання оновлено!';
             header('Location: index.php');
             exit;
         }
 
         if ($action === 'delete') {
-            $repo->delete((int) ($_POST['id'] ?? 0));
-            $_SESSION['feedback'] = 'Завдання видалено!';
+            $repo->delete((int) ($_POST['id'] ?? 0), $currentUserId);
+            $_SESSION['feedback'] = 'Завдання видалено з бази даних!';
             header('Location: index.php');
             exit;
         }
     } catch (ValidationException $e) {
-        // Перехоплюємо помилки валідації форми
         $formErrors = $e->getErrors();
     } catch (TaskNotFoundException $e) {
-        // Перехоплюємо спробу маніпуляції неіснуючим завданням
         $formErrors = [$e->getMessage()];
     } catch (TaskManagerException $e) {
-        // Загальний доменний виняток
         $formErrors = ['Помилка програми: ' . $e->getMessage()];
     } catch (Throwable $e) {
-        // Непередбачена системна помилка
         $formErrors = ['Критичний збій обробки запиту. Зверніться до техпідтримки.'];
-    } finally {
-        // Код у finally виконується незалежно від наявності чи відсутності винятку
-        // Наприклад, запис системного аудиту або закриття додаткових ресурсів
     }
 }
 
-$tasks = $repo->findAll();
+$perPage = 5;
+$page = max(1, (int) ($_GET['page'] ?? 1));
+try {
+    $totalTasks = $repo->countByUser($currentUserId);
+    $totalPages = max(1, (int) ceil($totalTasks / $perPage));
+    $page = min($page, $totalPages);
+    $tasks = $repo->findAllByUser($currentUserId, $page, $perPage);
+    $completedCount = $repo->countCompletedByUser($currentUserId);
+    $overdueCount = $repo->countOverdueByUser($currentUserId);
+} catch (PDOException $e) {
+    http_response_code(503);
+    exit('Помилка отримання завдань з бази даних.');
+}
 
 $appName = "Task Manager";
-
-function formatTitle($text, $maxLength = 20) {
-    if (mb_strlen($text) > $maxLength) {
-        return mb_substr($text, 0, $maxLength) . '...';
-    }
-    return $text;
-}
 
 function getCurrentGreeting() {
     $currentTime = date('H');
@@ -99,6 +102,12 @@ function getCurrentGreeting() {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $appName ?></title>
     <style>
+        .pagination {
+            margin-top: 20px;
+        }
+        .pagination a, .pagination strong {
+            padding: 5px;
+        }
         .task-done {
             color: green;
             -webkit-text-stroke: 0.1px black;
@@ -133,7 +142,8 @@ function getCurrentGreeting() {
                 Ви увійшли як Гість. <a href="login.php">[Увійти]</a>
             <?php endif; ?>
         </h1>
-        <h1><?= $appName ?></h1>
+        <h1><?= $appName ?> (MySQL + PDO)</h1>
+        <p>ID користувача: <?= $currentUserId ?></p>
         <h2><?= getCurrentGreeting() ?>!</h2>
         <a href="test_db.php">Діагностика БД (MySQL)</a>
 
@@ -161,14 +171,15 @@ function getCurrentGreeting() {
     </header>
     <main>
     <div class="stats">
-        Всього: <?= count($tasks) ?> |
-        Виконано: <?= $repo->countCompleted() ?> |
-        Прострочено: <?= $repo->countOverdue() ?>
+        Всього: <?= $totalTasks ?> |
+        Виконано: <?= $completedCount ?> |
+        Прострочено: <?= $overdueCount ?>
     </div>
+    <h2>Список завдань (Сторінка <?= $page ?> з <?= $totalPages ?>)</h2>
     <ul>
         <?php foreach ($tasks as $task): ?>
             <li class="<?= $task->isCompleted() ? 'task-done' : 'task-pending' ?>">
-                <?= htmlspecialchars(formatTitle($task->getTitle())) ?>
+                #<?= $task->getId() ?> <?= htmlspecialchars($task->getTitle()) ?>
                 <?= $task->getDeadline() ? '(' . htmlspecialchars($task->getDeadline()) . ')' : '' ?>
                 — <?= $task->getStatusLabel() ?>
 
@@ -195,6 +206,23 @@ function getCurrentGreeting() {
             </li>
         <?php endforeach; ?>
     </ul>
+    <?php if ($totalPages > 1): ?>
+        <div class="pagination">
+            <?php if ($page > 1): ?>
+                <a href="?page=<?= $page - 1 ?>">« Назад</a>
+            <?php endif; ?>
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+                <?php if ($i === $page): ?>
+                    <strong><?= $i ?></strong>
+                <?php else: ?>
+                    <a href="?page=<?= $i ?>"><?= $i ?></a>
+                <?php endif; ?>
+            <?php endfor; ?>
+            <?php if ($page < $totalPages): ?>
+                <a href="?page=<?= $page + 1 ?>">Вперед »</a>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
     </main>
 </body>
 </html>

@@ -7,111 +7,111 @@ require_once __DIR__ . '/Exceptions.php';
 
 class TaskRepository implements TaskStorageInterface
 {
-    /** @var Task[] */
-    private array $tasks = [];
+    public function __construct(private PDO $pdo) {}
 
-    public function __construct(private string $storageFile)
+    public function findAllByUser(int $userId, int $page = 1, int $perPage = 5): array
     {
-        $this->load();
+        $offset = ($page - 1) * $perPage;
+        $stmt = $this->pdo->prepare('SELECT * FROM tasks WHERE user_id = :user_id ORDER BY id DESC LIMIT :limit OFFSET :offset');
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return array_map(fn(array $row) => Task::fromArray($row), $stmt->fetchAll());
     }
 
-    public function findAll(): array  { return $this->tasks; }
-
-    public function findById(int $id): ?Task
+    public function countByUser(int $userId): int
     {
-        foreach ($this->tasks as $task) {
-            if ($task->getId() === $id) return $task;
-        }
-        return null;
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM tasks WHERE user_id = :user_id');
+        $stmt->execute(['user_id' => $userId]);
+        return (int) $stmt->fetchColumn();
     }
 
-    public function add(string $title, ?string $deadline = null): Task
+    public function countCompletedByUser(int $userId): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM tasks WHERE user_id = :user_id AND is_completed = 1');
+        $stmt->execute(['user_id' => $userId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countOverdueByUser(int $userId): int
+    {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM tasks WHERE user_id = :user_id AND is_completed = 0 AND deadline IS NOT NULL AND deadline < NOW()');
+        $stmt->execute(['user_id' => $userId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function findByIdAndUser(int $id, int $userId): ?Task
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM tasks WHERE id = :id AND user_id = :user_id');
+        $stmt->execute(['id' => $id, 'user_id' => $userId]);
+        $row = $stmt->fetch();
+        return $row ? Task::fromArray($row) : null;
+    }
+
+    public function add(int $userId, string $title, ?string $deadline = null): Task
     {
         $errors = [];
-        $cleanTitle = trim($title);
-
-        if ($cleanTitle === '') {
+        $title = trim($title);
+        if ($title === '') {
             $errors[] = 'Назва завдання є обов\'язковою для заповнення.';
-        } elseif (mb_strlen($cleanTitle) < 3) {
+        } elseif (mb_strlen($title) < 3) {
             $errors[] = 'Назва завдання повинна містити щонайменше 3 символи.';
+        } elseif (mb_strlen($title) > 255) {
+            $errors[] = 'Назва завдання не може містити більше 255 символів.';
         }
 
-        if ($deadline !== null && $deadline !== '') {
-            if (strtotime($deadline) === false) {
+        $deadline = $deadline !== null ? trim($deadline) : '';
+        if ($deadline !== '') {
+            $date = DateTimeImmutable::createFromFormat('!Y-m-d', $deadline);
+            if (!$date || $date->format('Y-m-d') !== $deadline) {
                 $errors[] = 'Вказано некоректну дату дедлайну.';
             }
         } else {
             $deadline = null;
         }
 
-        if (!empty($errors)) {
+        if ($errors) {
             throw new ValidationException($errors);
         }
 
-        $task = new Task(
-            id:          $this->generateNextId(),
-            title:       $cleanTitle,
-            isCompleted: false,
-            deadline:    $deadline,
-        );
-        $this->tasks[] = $task;
-        $this->save();
+        $stmt = $this->pdo->prepare('INSERT INTO tasks (user_id, title, description, priority, is_completed, deadline, created_at) VALUES (:user_id, :title, :description, :priority, 0, :deadline, NOW())');
+        $stmt->execute([
+            'user_id' => $userId,
+            'title' => $title,
+            'description' => '',
+            'priority' => 'Medium',
+            'deadline' => $deadline,
+        ]);
+
+        $id = (int) $this->pdo->lastInsertId();
+        $task = $this->findByIdAndUser($id, $userId);
+        if ($task === null) {
+            throw new RuntimeException('Не вдалося отримати створене завдання.');
+        }
         return $task;
     }
 
-    public function complete(int $id): bool
+    public function complete(int $id, int $userId): bool
     {
-        $task = $this->findById($id);
-        if ($task === null) {
+        $stmt = $this->pdo->prepare('UPDATE tasks SET is_completed = 1, updated_at = NOW() WHERE id = :id AND user_id = :user_id');
+        $stmt->execute(['id' => $id, 'user_id' => $userId]);
+
+        if ($stmt->rowCount() === 0 && $this->findByIdAndUser($id, $userId) === null) {
             throw new TaskNotFoundException($id);
         }
-        $task->complete();
-        $this->save();
         return true;
     }
 
-    public function delete(int $id): bool
+    public function delete(int $id, int $userId): bool
     {
-        foreach ($this->tasks as $key => $task) {
-            if ($task->getId() === $id) {
-                unset($this->tasks[$key]);
-                $this->tasks = array_values($this->tasks);
-                $this->save();
-                return true;
-            }
+        $stmt = $this->pdo->prepare('DELETE FROM tasks WHERE id = :id AND user_id = :user_id');
+        $stmt->execute(['id' => $id, 'user_id' => $userId]);
+
+        if ($stmt->rowCount() === 0) {
+            throw new TaskNotFoundException($id);
         }
-        throw new TaskNotFoundException($id);
-    }
-
-    public function countCompleted(): int
-    {
-        return count(array_filter($this->tasks, fn(Task $t) => $t->isCompleted()));
-    }
-
-    public function countOverdue(): int
-    {
-        return count(array_filter($this->tasks, fn(Task $t) => $t->isOverdue()));
-    }
-
-    private function generateNextId(): int
-    {
-        if (empty($this->tasks)) return 1;
-        return max(array_map(fn(Task $t) => $t->getId(), $this->tasks)) + 1;
-    }
-
-    private function load(): void
-    {
-        if (!file_exists($this->storageFile)) { $this->tasks = []; return; }
-        $data = json_decode(file_get_contents($this->storageFile), true) ?? [];
-        $this->tasks = array_map(fn(array $item) => Task::fromArray($item), $data);
-    }
-
-    private function save(): void
-    {
-        $data = array_map(fn(Task $t) => $t->toArray(), $this->tasks);
-        file_put_contents(
-            $this->storageFile,
-            json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
-        );
+        return true;
     }
 }
