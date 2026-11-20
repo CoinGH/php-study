@@ -135,6 +135,7 @@ function getCurrentGreeting() {
         </h1>
         <h1><?= $appName ?></h1>
         <h2><?= getCurrentGreeting() ?>!</h2>
+        <a href="test_db.php">Діагностика БД (MySQL)</a>
 
         <?php if ($feedbackMessage): ?>
             <div class="alert-success"><?= htmlspecialchars($feedbackMessage) ?></div>
