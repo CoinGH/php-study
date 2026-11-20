@@ -1,0 +1,45 @@
+.task-done {
+    color: green;
+    -webkit-text-stroke: 0.1px black;
+}
+.task-pending {
+    color: gray;
+}
+.task-meta {
+    font-size: 0.85em;
+    color: #868e96;
+}
+.alert-error {
+    background: #ffe3e3;
+    border: 1px solid #ffa8a8;
+    color: #c92a2a;
+    padding: 10px;
+}
+.alert-success {
+    background: #d3f9d8;
+    border: 1px solid #8ce99a;
+    color: #2b8a3e;
+    padding: 10px;
+}
+.inline {
+    display: inline;
+}
+.form-group, .pagination {
+    margin: 12px 0;
+}
+.pagination a, .pagination strong {
+    margin-right: 10px;
+}
+.not-found {
+    text-align: center;
+    margin-top: 80px;
+}
+.not-found h1 {
+    color: #c92a2a;
+    font-size: 3rem;
+}
+footer {
+    color: gray;
+    font-size: 0.85em;
+    margin-top: 30px;
+}
